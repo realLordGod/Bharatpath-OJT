@@ -67,9 +67,9 @@ export default function ConnectingJourneys() {
       </section>
 
       {/* ═══ Search Card ═══ */}
-      <section className="max-w-[1000px] mx-auto px-4 mb-8">
+      <section className="max-w-[1000px] mx-auto px-4 mb-8 relative z-[60]">
         <div
-          className="rounded-2xl p-5 anim-fade-up"
+          className="rounded-2xl p-5"
           style={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border)',
@@ -293,7 +293,7 @@ export default function ConnectingJourneys() {
 
       {/* ═══ Empty state ═══ */}
       {!hasSearched && !isSearching && (
-        <div className="max-w-[500px] mx-auto text-center py-16 px-4 anim-fade-up anim-delay-2">
+        <div className="max-w-[500px] mx-auto text-center py-16 px-4 relative z-0">
           <div
             className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center"
             style={{ background: 'var(--primary-light)', border: '1px solid var(--border)' }}

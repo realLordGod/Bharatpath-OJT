@@ -86,8 +86,8 @@ export default function StationDropdown({ label, value, onChange, placeholder = 
           style={{
             background: 'var(--bg-surface)',
             border: '1px solid var(--border)',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.15)',
-            zIndex: 9999,
+            boxShadow: 'var(--shadow-lg)',
+            zIndex: 99999,
           }}
         >
           {/* Search input */}
