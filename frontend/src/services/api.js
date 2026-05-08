@@ -3,7 +3,7 @@
  * @description Centralized API service layer
  */
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000' : '');
 
 export const api = {
   // Client-side cache for stations (in-memory)
