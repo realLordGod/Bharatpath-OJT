@@ -2,19 +2,20 @@
  * @file apiService.js
  * @description Central Axios instance for calling RapidAPI.
  *
- * WHY THIS EXISTS:
- * Instead of writing headers in every file, we configure Axios once here.
- * Every controller can import `railwayAPI` and just call the endpoint
- * without worrying about adding the API key every single time.
+ * SMART KEY ROTATION:
+ * - Tracks which keys are exhausted (429) and skips them automatically.
+ * - Once a key fails with 429, it's blacklisted for 1 hour before retrying.
+ * - This prevents wasting precious API calls on dead keys.
  */
 
 const axios = require('axios');
 
+// Track exhausted keys: { keyHash: expiresAt timestamp }
+const exhaustedKeys = new Map();
+const EXHAUSTED_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour before retrying a dead key
+
 /**
  * Creates an Axios instance pre-configured with RapidAPI headers.
- * @param {string} host - The API host (e.g., 'irctc1.p.rapidapi.com')
- * @param {string} key - The API key
- * @returns {import('axios').AxiosInstance}
  */
 const createRailwayAPI = (host, key) => {
   return axios.create({
@@ -27,10 +28,31 @@ const createRailwayAPI = (host, key) => {
 };
 
 /**
+ * Check if a key is currently blacklisted (exhausted).
+ */
+const isKeyExhausted = (key) => {
+  const keyId = key.substring(0, 8);
+  const expiry = exhaustedKeys.get(keyId);
+  if (!expiry) return false;
+  if (Date.now() > expiry) {
+    exhaustedKeys.delete(keyId); // Cooldown expired, allow retry
+    return false;
+  }
+  return true; // Still exhausted
+};
+
+/**
+ * Mark a key as exhausted (429 received).
+ */
+const markKeyExhausted = (key) => {
+  const keyId = key.substring(0, 8);
+  exhaustedKeys.set(keyId, Date.now() + EXHAUSTED_COOLDOWN_MS);
+  console.log(`🔒 Key ${keyId}... blacklisted for 1 hour (429 limit reached).`);
+};
+
+/**
  * Attempts an API call using a list of API keys in sequence.
- * Falls back to the next key if the current one hits a rate limit (or fails).
- * @param {string} endpoint - The API path to fetch (e.g., '/api/v3/getPNRStatus?pnrNumber=123')
- * @returns {Promise<any>} - The response data from the successful API call
+ * SKIPS keys that are known to be exhausted to save API quota.
  */
 const fetchWithKeyRotation = async (endpoint) => {
   const host = process.env.RAILWAY_API_HOST;
@@ -40,29 +62,44 @@ const fetchWithKeyRotation = async (endpoint) => {
     throw new Error('RAILWAY_API_HOST or RAILWAY_API_KEYS missing in environment.');
   }
 
-  // Split keys by comma and trim any extra spaces
   const keys = keysStr.split(',').map((k) => k.trim()).filter(Boolean);
+  
+  // Filter out exhausted keys
+  const activeKeys = keys.filter(k => !isKeyExhausted(k));
+  
+  if (activeKeys.length === 0) {
+    console.log('⏸️ All API keys are cooling down. Using local database.');
+    throw new Error('All API keys exhausted — cooldown active. Status: 429');
+  }
+
+  console.log(`🔑 ${activeKeys.length}/${keys.length} keys available for: ${endpoint.split('?')[0]}`);
 
   let lastError;
 
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
+  for (let i = 0; i < activeKeys.length; i++) {
+    const key = activeKeys[i];
     try {
       const railwayAPI = createRailwayAPI(host, key);
       const response = await railwayAPI.get(endpoint);
       
-      // If we get here, the call was successful
+      // Success! Return the data
       return response.data;
     } catch (error) {
-      console.error(`⚠️ API Call failed with key ${i + 1}/${keys.length} (${key.substring(0, 5)}...):`, error.message);
+      const status = error.response?.status;
+      
+      if (status === 429) {
+        // Rate limited — blacklist this key
+        markKeyExhausted(key);
+      } else {
+        console.warn(`⚠️ Key ${key.substring(0, 5)}... failed (${status || error.message})`);
+      }
+      
       lastError = error;
-      // Continue to the next key in the loop
     }
   }
 
-  // If the loop finishes, all keys failed
-  console.error('❌ All API keys failed.');
-  throw lastError; // Throw the last error to be caught by the controller
+  console.log('❌ All active API keys failed.');
+  throw lastError;
 };
 
 module.exports = { createRailwayAPI, fetchWithKeyRotation };

@@ -1,9 +1,16 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Topbar from './Topbar';
+import Sidebar from './Sidebar';
 
 export default function MainLayout() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
   return (
     <>
+      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       {/* ── Subtle background pattern overlay ── */}
       <div className="bp-bg-pattern" aria-hidden="true" />
 
@@ -45,10 +52,15 @@ export default function MainLayout() {
       </div>
 
       <div
-        style={{ background: 'var(--page-gradient)', color: 'var(--text-primary)' }}
+        style={{ 
+          background: 'var(--page-gradient)', 
+          color: 'var(--text-primary)',
+          marginLeft: isSidebarOpen ? '256px' : '80px',
+          transition: 'margin-left 0.5s ease-[cubic-bezier(0.16,1,0.3,1)]'
+        }}
         className="relative flex flex-col min-h-screen z-10"
       >
-        <Topbar />
+        <Topbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
 
         {/* Main content — no forced padding; each page handles its own spacing */}
         <main className="flex-1 w-full">

@@ -1,9 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Train, LogIn, User } from 'lucide-react';
+import { Train, LogIn, User, Menu, X } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
-export default function Topbar() {
+export default function Topbar({ toggleSidebar, isSidebarOpen }) {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
@@ -18,6 +18,8 @@ export default function Topbar() {
     { path: '/',               label: 'Home' },
     { path: '/pnr-status',    label: 'PNR' },
     { path: '/live-tracking',  label: 'Live Status' },
+    { path: '/connecting-journeys', label: 'Routes' },
+    { path: '/proximity-alerts', label: 'Alerts' },
     { path: '/seat-exchange',  label: 'Seat Swap' },
     { path: '/sos',            label: 'SOS', isDanger: true },
   ];
@@ -25,6 +27,15 @@ export default function Topbar() {
   return (
     <header className="w-full sticky top-0 z-50 bp-topbar-glass" style={{ borderBottom: '1px solid var(--border)' }}>
       <div className="max-w-[1200px] mx-auto px-5 h-[62px] flex items-center justify-between gap-6">
+        
+        {/* ── Sidebar Toggle ── */}
+        <button
+          onClick={toggleSidebar}
+          className="p-2 rounded-xl hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center"
+          style={{ border: '1px solid var(--border)' }}
+        >
+          {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
 
         {/* ── Logo ── */}
         <Link to="/" className="flex items-center gap-2.5 group flex-shrink-0">
